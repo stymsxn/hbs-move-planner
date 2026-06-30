@@ -345,7 +345,6 @@
       </div>
     </div>
     <div class="headRight">
-      <span class="countBadge" id="countBadge"></span>
       <button class="iconBtnTop" id="bagBtn" aria-label="Bags">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8V6a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v2"/><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M3 13h18"/></svg>
       </button>
@@ -778,8 +777,6 @@ function updateProgress(){
 
   const packAll = items.filter(i=> i.list==='packing' || i.shopped);
   setProg('packProgVal','packProgBar', packAll.filter(i=>i.packed).length, packAll.length);
-
-  document.getElementById('countBadge').textContent = items.length ? `${items.length} item${items.length>1?'s':''}` : '';
 }
 
 function escapeHtml(s){
