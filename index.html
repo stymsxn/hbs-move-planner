@@ -110,13 +110,42 @@
   }
   input:focus,select:focus,textarea:focus{border-color:var(--accent)!important;box-shadow:0 0 0 3px var(--accent-tint);}
 
-  /* ---------- bag summary ---------- */
-  .bagSummary{
-    background:var(--gold-tint);border:1px solid #ece2cc;border-radius:var(--r-md);
-    padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--muted);line-height:1.6;
+  /* ---------- collapsible "done" section ---------- */
+  .doneSection{margin-top:18px;}
+  .doneHead{
+    display:flex;align-items:center;gap:8px;width:100%;cursor:pointer;
+    background:transparent;border:none;font-family:inherit;
+    padding:8px 2px;color:var(--muted);
   }
-  .bagSummary .bsTitle{display:flex;align-items:center;gap:7px;font-weight:600;color:var(--gold);margin-bottom:5px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
-  .bagSummary b{color:var(--text);font-weight:600;}
+  .doneChevron{transition:transform .25s ease;flex:none;color:var(--faint);}
+  .doneHead.open .doneChevron{transform:rotate(180deg);}
+  .doneLabel{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;}
+  .doneCount{
+    font-size:11px;font-weight:600;color:var(--muted);background:var(--surface-2);
+    border-radius:999px;padding:1px 8px;min-width:20px;text-align:center;
+  }
+  .doneBody{
+    display:grid;grid-template-rows:0fr;overflow:hidden;
+    transition:grid-template-rows .3s cubic-bezier(.32,.72,0,1);
+  }
+  .doneBody > *{min-height:0;}
+  .doneBody.open{grid-template-rows:1fr;}
+  .doneBody.open{padding-top:8px;}
+  .allDone{text-align:center;color:var(--faint);font-size:13px;padding:24px 10px 4px;}
+
+  /* ---------- bag cards ---------- */
+  .bagCard{
+    background:var(--surface);border:1px solid var(--hair);border-radius:var(--r-lg);
+    padding:14px 15px;margin-bottom:12px;
+  }
+  .bagCardHead{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:10px;}
+  .bagCardTitle{display:flex;align-items:center;gap:8px;font-family:'Newsreader',serif;font-size:16px;font-weight:600;color:var(--gold);}
+  .bagCardCount{font-size:11px;font-weight:600;color:var(--muted);background:var(--surface-2);border-radius:999px;padding:2px 9px;}
+  .bagCardItems{display:flex;flex-direction:column;}
+  .bagItem{display:flex;align-items:center;gap:8px;padding:8px 0;border-top:1px solid var(--hair);}
+  .bagItemName{flex:1;min-width:0;font-size:14px;font-weight:500;}
+  .bagItemQty{font-size:12px;color:var(--muted);font-weight:600;}
+  .bagItemFrom{font-size:10.5px;font-weight:600;color:var(--muted);background:var(--surface-2);border-radius:7px;padding:2px 8px;}
 
   /* ---------- section label ---------- */
   .sectionLabel{font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin:18px 2px 9px;}
@@ -315,6 +344,9 @@
     </div>
     <div class="headRight">
       <span class="countBadge" id="countBadge"></span>
+      <button class="iconBtnTop" id="bagBtn" aria-label="Bags" style="display:none">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8V6a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v2"/><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M3 13h18"/></svg>
+      </button>
       <button class="iconBtnTop" id="openDataBtn" aria-label="Import & export">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
       </button>
@@ -352,7 +384,6 @@
     </div>
     <select id="catFilter"><option value="">All categories</option></select>
   </div>
-  <div id="bagSummaryWrap"></div>
   <div id="listWrap"></div>
 </main>
 
@@ -390,6 +421,17 @@
     </div>
     <p class="pageNote">Your list lives on this device only. Export regularly to keep a backup, or to move items to another phone or laptop. Importing <b>adds</b> to your current list — it doesn't replace it.</p>
   </div>
+</section>
+
+<!-- ===== Bag contents page ===== -->
+<section class="page" id="bagPage" aria-hidden="true">
+  <div class="pageHead">
+    <button class="backBtn" id="closeBagBtn" aria-label="Back">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <h2>Bags</h2>
+  </div>
+  <div class="pageBody" id="bagPageBody"></div>
 </section>
 
 <div class="modalOverlay" id="modalOverlay">
@@ -531,7 +573,7 @@ let modalTarget = 'shopping_india';
 const listWrap = document.getElementById('listWrap');
 const catFilter = document.getElementById('catFilter');
 const searchBox = document.getElementById('searchBox');
-const bagSummaryWrap = document.getElementById('bagSummaryWrap');
+const bagBtn = document.getElementById('bagBtn');
 
 CATEGORIES.forEach(c=>{
   const o = document.createElement('option'); o.value=c; o.textContent=c;
@@ -557,42 +599,116 @@ function toast(msg){
   setTimeout(()=>t.classList.remove('show'), 1700);
 }
 
+// remember whether each list's "done" section is expanded
+const doneOpen = { shopping_india:false, shopping_usa:false, packing:false };
+
+function makeItemRow(item){
+  const isPackingTab = activeTab === 'packing';
+  const isBought = item.shopped || item.list === 'packing';
+  const locked = isPackingTab && !isBought; // greyed: can't pack until bought
+  const checked = isPackingTab ? item.packed : item.shopped;
+
+  const div = document.createElement('div');
+  div.className = 'item' + (locked ? ' greyed' : '');
+
+  const check = document.createElement('div');
+  check.className = 'check' + (checked ? ' checked' : '') + (locked ? ' locked' : '');
+  check.innerHTML = locked ? ICON_LOCK : ICON_CHECK;
+  check.addEventListener('click', ()=>{
+    if(isPackingTab){
+      if(!isBought){ toast('Buy this item first'); return; }
+      item.packed = !item.packed;
+      if(!item.packed) item.bag = item.bag || '';
+    } else {
+      if(item.shopped){
+        // un-check a bought item -> send it back to this shopping list
+        item.shopped = false; item.list = activeTab; item.origin = ''; item.packed = false; item.bag = '';
+      } else {
+        item.shopped = true; item.origin = activeTab; item.list = 'packing';
+        toast('Moved to packing list');
+      }
+    }
+    save(); render();
+  });
+
+  const body = document.createElement('div');
+  body.className = 'itemBody';
+  body.innerHTML = `
+    <div class="itemTop">
+      <div class="itemName">${escapeHtml(item.name)}</div>
+      ${(item.qty||1) > 1 ? `<div class="qty">Qty ${item.qty}</div>` : ''}
+    </div>
+    <div class="metaRow">
+      <span class="pill cat"><span class="dot"></span>${escapeHtml(item.category)}</span>
+      ${isPackingTab && (item.origin || item.list) !== 'packing' ? `<span class="pill">From ${ (item.origin || item.list)==='shopping_usa' ? 'USA' : 'India' }</span>` : ''}
+      ${isPackingTab && locked ? `<span class="pill warn">Not bought yet</span>` : ''}
+      ${isPackingTab && item.packed && item.bag ? `<span class="bagTag">Bag ${escapeHtml(item.bag)}</span>` : ''}
+    </div>
+    ${item.comment ? `<div class="comment">${escapeHtml(item.comment)}</div>` : ''}
+  `;
+
+  if(isPackingTab && item.packed){
+    const input = document.createElement('input');
+    input.className = 'bagInput';
+    input.type = 'text';
+    input.placeholder = 'Assign bag number…';
+    input.value = item.bag || '';
+    input.addEventListener('change', ()=>{ item.bag = input.value.trim(); save(); render(); });
+    body.appendChild(input);
+  }
+
+  const actions = document.createElement('div');
+  actions.className = 'itemActions';
+  const editBtn = document.createElement('button');
+  editBtn.className = 'iconBtn';
+  editBtn.innerHTML = ICON_EDIT;
+  editBtn.addEventListener('click', ()=> openModal(item));
+  const delBtn = document.createElement('button');
+  delBtn.className = 'iconBtn del';
+  delBtn.innerHTML = ICON_DEL;
+  delBtn.addEventListener('click', ()=>{
+    if(confirm(`Delete "${item.name}"?`)){
+      items = items.filter(i=>i.id!==item.id);
+      save(); render();
+    }
+  });
+  actions.appendChild(editBtn);
+  actions.appendChild(delBtn);
+
+  div.appendChild(check);
+  div.appendChild(body);
+  div.appendChild(actions);
+  return div;
+}
+
 function render(){
   const q = searchBox.value.trim().toLowerCase();
   const cat = catFilter.value;
+  const isPackingTab = activeTab === 'packing';
 
-  let list;
-  if(activeTab === 'packing'){
-    // show everything: bought items are active, not-yet-bought show greyed
-    list = items.slice();
+  // split into active (unchecked) and done (checked) for this tab
+  let main, done, doneLabel;
+  if(isPackingTab){
+    main = items.filter(i => !i.packed);          // includes locked + bought-not-packed
+    done = items.filter(i => i.packed);
+    doneLabel = 'Packed';
   } else {
-    list = items.filter(i => i.list === activeTab && !i.shopped);
+    main = items.filter(i => i.list === activeTab && !i.shopped);
+    done = items.filter(i => i.origin === activeTab && i.shopped);
+    doneLabel = 'Bought';
   }
-  if(cat) list = list.filter(i => i.category === cat);
-  if(q) list = list.filter(i => i.name.toLowerCase().includes(q) || (i.comment||'').toLowerCase().includes(q));
 
-  // sort: category then name
-  list.sort((a,b)=> a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
+  const f = arr => arr.filter(i =>
+    (!cat || i.category === cat) &&
+    (!q || i.name.toLowerCase().includes(q) || (i.comment||'').toLowerCase().includes(q)));
+  main = f(main); done = f(done);
+  const sortFn = (a,b)=> a.category.localeCompare(b.category) || a.name.localeCompare(b.name);
+  main.sort(sortFn); done.sort(sortFn);
 
   listWrap.innerHTML = '';
-  bagSummaryWrap.innerHTML = '';
+  bagBtn.style.display = isPackingTab ? '' : 'none';
 
-  if(activeTab === 'packing'){
-    const bags = {};
-    items.filter(i=> (i.list==='packing' || i.shopped) && i.packed && i.bag).forEach(i=>{
-      bags[i.bag] = (bags[i.bag]||0) + (i.qty||1);
-    });
-    const bagKeys = Object.keys(bags).sort();
-    if(bagKeys.length){
-      const div = document.createElement('div');
-      div.className = 'bagSummary';
-      div.innerHTML = '<div class="bsTitle"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8V6a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v2"/><rect x="3" y="8" width="18" height="13" rx="2"/></svg>Bag summary</div>'
-        + bagKeys.map(b=>`<b>Bag ${escapeHtml(b)}</b> · ${bags[b]} item${bags[b]>1?'s':''}`).join('  &nbsp;&nbsp;·&nbsp;&nbsp;  ');
-      bagSummaryWrap.appendChild(div);
-    }
-  }
-
-  if(!list.length){
+  if(!main.length && !done.length){
     const emptyData = {
       shopping_india: {t:'Nothing on the India list', d:'Tap the + button to add an item, or import an Excel file.'},
       shopping_usa: {t:'Nothing on the USA list', d:'Tap the + button to add an item, or import an Excel file.'},
@@ -606,82 +722,35 @@ function render(){
     return;
   }
 
-  list.forEach(item=>{
-    const div = document.createElement('div');
-    const isPackingTab = activeTab === 'packing';
-    // an item can be packed only once it's bought (shopped) or was added straight to packing
-    const isBought = item.shopped || item.list === 'packing';
-    const locked = isPackingTab && !isBought; // greyed: can't pack until bought
-    div.className = 'item' + (locked ? ' greyed' : '');
+  main.forEach(item => listWrap.appendChild(makeItemRow(item)));
 
-    const check = document.createElement('div');
-    check.className = 'check'
-      + ((isPackingTab ? item.packed : item.shopped) ? ' checked' : '')
-      + (locked ? ' locked' : '');
-    check.innerHTML = locked ? ICON_LOCK : ICON_CHECK;
-    check.addEventListener('click', ()=>{
-      if(isPackingTab){
-        if(!isBought){ toast('Buy this item first'); return; }
-        item.packed = !item.packed;
-        if(!item.packed) item.bag = item.bag || '';
-      } else {
-        item.shopped = true;
-        item.origin = activeTab;
-        item.list = 'packing';
-        toast(`Moved to packing list`);
-      }
-      save(); render();
-    });
+  if(!main.length){
+    const note = document.createElement('div');
+    note.className = 'allDone';
+    note.textContent = isPackingTab ? 'Everything here is packed.' : 'Everything here is bought.';
+    listWrap.appendChild(note);
+  }
 
-    const body = document.createElement('div');
-    body.className = 'itemBody';
-    body.innerHTML = `
-      <div class="itemTop">
-        <div class="itemName">${escapeHtml(item.name)}</div>
-        ${(item.qty||1) > 1 ? `<div class="qty">Qty ${item.qty}</div>` : ''}
-      </div>
-      <div class="metaRow">
-        <span class="pill cat"><span class="dot"></span>${escapeHtml(item.category)}</span>
-        ${isPackingTab && (item.origin || item.list) !== 'packing' ? `<span class="pill">From ${ (item.origin || item.list)==='shopping_usa' ? 'USA' : 'India' }</span>` : ''}
-        ${isPackingTab && locked ? `<span class="pill warn">Not bought yet</span>` : ''}
-        ${isPackingTab && item.packed && item.bag ? `<span class="bagTag">Bag ${escapeHtml(item.bag)}</span>` : ''}
-      </div>
-      ${item.comment ? `<div class="comment">${escapeHtml(item.comment)}</div>` : ''}
-    `;
+  if(done.length){
+    const section = document.createElement('div');
+    section.className = 'doneSection';
 
-    if(isPackingTab && item.packed){
-      const input = document.createElement('input');
-      input.className = 'bagInput';
-      input.type = 'text';
-      input.placeholder = 'Assign bag number…';
-      input.value = item.bag || '';
-      input.addEventListener('change', ()=>{ item.bag = input.value.trim(); save(); render(); });
-      body.appendChild(input);
-    }
+    const head = document.createElement('button');
+    head.className = 'doneHead' + (doneOpen[activeTab] ? ' open' : '');
+    head.innerHTML = `
+      <svg class="doneChevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      <span class="doneLabel">${doneLabel}</span>
+      <span class="doneCount">${done.length}</span>`;
+    head.addEventListener('click', ()=>{ doneOpen[activeTab] = !doneOpen[activeTab]; render(); });
+    section.appendChild(head);
 
-    const actions = document.createElement('div');
-    actions.className = 'itemActions';
-    const editBtn = document.createElement('button');
-    editBtn.className = 'iconBtn';
-    editBtn.innerHTML = ICON_EDIT;
-    editBtn.addEventListener('click', ()=> openModal(item));
-    const delBtn = document.createElement('button');
-    delBtn.className = 'iconBtn del';
-    delBtn.innerHTML = ICON_DEL;
-    delBtn.addEventListener('click', ()=>{
-      if(confirm(`Delete "${item.name}"?`)){
-        items = items.filter(i=>i.id!==item.id);
-        save(); render();
-      }
-    });
-    actions.appendChild(editBtn);
-    actions.appendChild(delBtn);
+    const bodyWrap = document.createElement('div');
+    bodyWrap.className = 'doneBody' + (doneOpen[activeTab] ? ' open' : '');
+    done.forEach(item => bodyWrap.appendChild(makeItemRow(item)));
+    section.appendChild(bodyWrap);
 
-    div.appendChild(check);
-    div.appendChild(body);
-    div.appendChild(actions);
-    listWrap.appendChild(div);
-  });
+    listWrap.appendChild(section);
+  }
 
   updateProgress();
 }
@@ -832,6 +901,56 @@ document.getElementById('openDataBtn').addEventListener('click', ()=>{
 document.getElementById('closeDataBtn').addEventListener('click', ()=>{
   dataPage.classList.remove('show'); dataPage.setAttribute('aria-hidden','true');
 });
+
+// Bag contents page
+const bagPage = document.getElementById('bagPage');
+const bagPageBody = document.getElementById('bagPageBody');
+bagBtn.addEventListener('click', ()=>{ renderBagPage(); bagPage.classList.add('show'); bagPage.setAttribute('aria-hidden','false'); });
+document.getElementById('closeBagBtn').addEventListener('click', ()=>{
+  bagPage.classList.remove('show'); bagPage.setAttribute('aria-hidden','true');
+});
+
+function renderBagPage(){
+  const packed = items.filter(i => i.packed && (i.list==='packing' || i.shopped));
+  bagPageBody.innerHTML = '';
+
+  if(!packed.length){
+    bagPageBody.innerHTML = `<div class="empty">
+      <div class="eIcon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8V6a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v2"/><rect x="3" y="8" width="18" height="13" rx="2"/></svg></div>
+      <div class="eTitle">No bags yet</div>Pack items and assign each a bag number to see them grouped here.</div>`;
+    return;
+  }
+
+  // group by bag, with an "Unassigned" bucket last
+  const groups = {};
+  packed.forEach(i=>{ const k = (i.bag||'').trim() || '__none__'; (groups[k] = groups[k] || []).push(i); });
+  const keys = Object.keys(groups).sort((a,b)=>{
+    if(a==='__none__') return 1; if(b==='__none__') return -1;
+    const na = parseFloat(a), nb = parseFloat(b);
+    if(!isNaN(na) && !isNaN(nb)) return na - nb;
+    return a.localeCompare(b);
+  });
+
+  keys.forEach(k=>{
+    const list = groups[k].sort((a,b)=> a.name.localeCompare(b.name));
+    const count = list.reduce((s,i)=> s + (i.qty||1), 0);
+    const card = document.createElement('div');
+    card.className = 'bagCard';
+    const title = k==='__none__' ? 'Unassigned' : 'Bag ' + escapeHtml(k);
+    card.innerHTML = `
+      <div class="bagCardHead">
+        <span class="bagCardTitle">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8V6a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v2"/><rect x="3" y="8" width="18" height="13" rx="2"/></svg>
+          ${title}
+        </span>
+        <span class="bagCardCount">${count} item${count>1?'s':''}</span>
+      </div>
+      <div class="bagCardItems">
+        ${list.map(i=>`<div class="bagItem"><span class="bagItemName">${escapeHtml(i.name)}</span>${(i.qty||1)>1?`<span class="bagItemQty">×${i.qty}</span>`:''}<span class="bagItemFrom">${(i.origin||i.list)==='shopping_usa'?'USA':'India'}</span></div>`).join('')}
+      </div>`;
+    bagPageBody.appendChild(card);
+  });
+}
 
 // Excel import/export
 document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('fileInput').click());
