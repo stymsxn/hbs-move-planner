@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
+<title>Move Planner</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#fbfaf8;
+    --surface:#ffffff;
+    --surface-2:#f5f3ef;
+    --hair:#ebe8e2;
+    --hair-strong:#ddd9d1;
+    --text:#1b1a17;
+    --muted:#6e6a62;
+    --faint:#a8a499;
+    --accent:#A51C30;
+    --accent-press:#8c1729;
+    --accent-tint:#f7eced;
+    --green:#2f7a55;
+    --green-tint:#eaf4ee;
+    --gold:#9a7a2e;
+    --gold-tint:#f5efe0;
+    --danger:#b5341f;
+    --r-xl:22px; --r-lg:16px; --r-md:12px; --r-sm:9px;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html{-webkit-text-size-adjust:100%;}
+  body{
+    margin:0;
+    font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+    background:var(--bg);color:var(--text);
+    padding-bottom:108px;
+    font-size:15px;line-height:1.45;
+    -webkit-font-smoothing:antialiased;
+  }
+  .serif{font-family:'Newsreader',Georgia,serif;}
+
+  /* ---------- header ---------- */
+  header{
+    position:sticky;top:0;z-index:10;
+    background:rgba(251,250,248,.85);
+    backdrop-filter:saturate(180%) blur(16px);
+    -webkit-backdrop-filter:saturate(180%) blur(16px);
+    padding:18px 20px 14px;
+    border-bottom:1px solid var(--hair);
+  }
+  .brandRow{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
+  .brand{display:flex;align-items:center;gap:11px;}
+  .crest{
+    width:34px;height:34px;border-radius:10px;flex:none;
+    background:var(--accent);color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-family:'Newsreader',serif;font-weight:600;font-size:17px;
+    letter-spacing:.01em;
+  }
+  .brandText h1{
+    font-family:'Newsreader',serif;font-size:19px;font-weight:600;
+    margin:0;letter-spacing:-.01em;line-height:1.1;
+  }
+  .brandText .sub{font-size:11px;color:var(--faint);font-weight:500;letter-spacing:.06em;text-transform:uppercase;margin-top:2px;}
+  .countBadge{font-size:12px;color:var(--muted);font-weight:500;white-space:nowrap;}
+
+  /* ---------- progress ---------- */
+  .progressRow{display:flex;gap:0;margin-bottom:16px;border:1px solid var(--hair);border-radius:var(--r-md);overflow:hidden;background:var(--surface);}
+  .progressCard{flex:1;padding:11px 13px;min-width:0;position:relative;}
+  .progressCard + .progressCard{border-left:1px solid var(--hair);}
+  .progressCard .label{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:500;}
+  .progressCard .val{font-size:18px;font-weight:600;margin-top:3px;letter-spacing:-.02em;}
+  .progressCard .val span{font-size:12px;color:var(--faint);font-weight:500;}
+  .bar{height:3px;background:var(--surface-2);border-radius:3px;margin-top:9px;overflow:hidden;}
+  .barFill{height:100%;border-radius:3px;background:var(--accent);transition:width .4s cubic-bezier(.4,0,.2,1);}
+
+  /* ---------- segmented tabs ---------- */
+  .tabs{display:flex;gap:2px;background:var(--surface-2);border-radius:var(--r-md);padding:3px;}
+  .tab{
+    flex:1;text-align:center;padding:9px 4px;font-size:13px;font-weight:500;
+    color:var(--muted);border-radius:9px;cursor:pointer;white-space:nowrap;
+    transition:color .2s, background .2s, box-shadow .2s;
+    letter-spacing:-.01em;
+  }
+  .tab.active{color:var(--text);background:var(--surface);font-weight:600;box-shadow:0 1px 2px rgba(27,26,23,.07);}
+
+  main{padding:18px 20px 0;}
+
+  /* ---------- toolbar ---------- */
+  .toolbar{display:flex;gap:9px;margin-bottom:16px;}
+  .searchWrap{flex:1;position:relative;display:flex;align-items:center;}
+  .searchWrap svg{position:absolute;left:12px;color:var(--faint);pointer-events:none;}
+  input[type=text]#searchBox{
+    width:100%;background:var(--surface);border:1px solid var(--hair);color:var(--text);
+    border-radius:var(--r-md);padding:10px 12px 10px 36px;font-size:14px;font-family:inherit;outline:none;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  select#catFilter{
+    background:var(--surface);border:1px solid var(--hair);color:var(--text);
+    border-radius:var(--r-md);padding:10px 12px;font-size:13.5px;font-family:inherit;outline:none;
+    max-width:130px;transition:border-color .15s, box-shadow .15s;
+  }
+  input:focus,select:focus,textarea:focus{border-color:var(--accent)!important;box-shadow:0 0 0 3px var(--accent-tint);}
+
+  /* ---------- bag summary ---------- */
+  .bagSummary{
+    background:var(--gold-tint);border:1px solid #ece2cc;border-radius:var(--r-md);
+    padding:12px 14px;margin-bottom:14px;font-size:13px;color:var(--muted);line-height:1.6;
+  }
+  .bagSummary .bsTitle{display:flex;align-items:center;gap:7px;font-weight:600;color:var(--gold);margin-bottom:5px;font-size:12px;text-transform:uppercase;letter-spacing:.04em;}
+  .bagSummary b{color:var(--text);font-weight:600;}
+
+  /* ---------- section label ---------- */
+  .sectionLabel{font-size:11px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin:18px 2px 9px;}
+  .sectionLabel:first-child{margin-top:0;}
+
+  /* ---------- item rows ---------- */
+  .item{
+    background:var(--surface);border:1px solid var(--hair);border-radius:var(--r-lg);
+    padding:14px 15px;margin-bottom:9px;display:flex;align-items:flex-start;gap:13px;
+    transition:opacity .2s, border-color .2s;
+  }
+  .item.greyed{opacity:.5;}
+  .check{
+    width:22px;height:22px;border-radius:7px;border:1.5px solid var(--hair-strong);flex:none;margin-top:1px;
+    cursor:pointer;display:flex;align-items:center;justify-content:center;background:var(--surface);
+    transition:background .15s,border-color .15s,transform .1s;
+  }
+  .check:active{transform:scale(.88);}
+  .check svg{opacity:0;transition:opacity .12s;color:#fff;}
+  .check.checked{background:var(--green);border-color:var(--green);}
+  .check.checked svg{opacity:1;}
+  .check.locked{background:var(--surface-2);border-color:var(--hair);border-style:dashed;cursor:not-allowed;}
+  .check.locked svg{opacity:1;color:var(--faint);}
+  .itemBody{flex:1;min-width:0;}
+  .itemTop{display:flex;justify-content:space-between;gap:10px;align-items:flex-start;}
+  .itemName{font-size:15px;font-weight:600;word-break:break-word;letter-spacing:-.01em;line-height:1.3;}
+  .qty{font-size:12px;color:var(--muted);white-space:nowrap;font-weight:500;flex:none;margin-top:1px;}
+  .metaRow{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center;}
+  .pill{
+    font-size:11px;font-weight:500;padding:3px 9px;border-radius:7px;
+    background:var(--surface-2);color:var(--muted);letter-spacing:0;
+    display:inline-flex;align-items:center;gap:4px;
+  }
+  .pill.cat{background:var(--accent-tint);color:var(--accent);}
+  .pill.warn{background:var(--gold-tint);color:var(--gold);}
+  .pill .dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.7;}
+  .bagTag{font-size:11px;font-weight:500;padding:3px 9px;border-radius:7px;background:var(--gold-tint);color:var(--gold);}
+  .comment{font-size:13px;color:var(--muted);margin-top:8px;line-height:1.45;padding-left:11px;border-left:2px solid var(--hair);}
+  .itemActions{display:flex;flex-direction:column;gap:2px;align-items:flex-end;flex:none;}
+  .iconBtn{
+    background:none;border:none;color:var(--faint);cursor:pointer;padding:6px;border-radius:8px;
+    line-height:0;transition:background .15s,color .15s;display:flex;
+  }
+  .iconBtn:active{background:var(--surface-2);}
+  .iconBtn.del:active{color:var(--danger);}
+  .bagInput{
+    width:100%;max-width:140px;font-size:12.5px;padding:7px 10px;margin-top:10px;
+    background:var(--surface-2);border:1px solid var(--hair);border-radius:var(--r-sm);
+    color:var(--text);font-family:inherit;outline:none;
+  }
+
+  .empty{text-align:center;color:var(--muted);padding:60px 24px;font-size:14px;line-height:1.6;}
+  .empty .eIcon{width:48px;height:48px;border-radius:14px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:var(--faint);}
+  .empty .eTitle{font-family:'Newsreader',serif;font-size:17px;font-weight:600;color:var(--text);margin-bottom:5px;}
+
+  /* ---------- fab ---------- */
+  .fab{
+    position:fixed;bottom:90px;right:20px;width:54px;height:54px;border-radius:17px;
+    background:var(--accent);color:#fff;border:none;
+    box-shadow:0 6px 20px rgba(165,28,48,.34);cursor:pointer;z-index:20;
+    display:flex;align-items:center;justify-content:center;
+    transition:transform .12s,background .15s;
+  }
+  .fab:active{transform:scale(.92);background:var(--accent-press);}
+
+  /* ---------- bottom bar ---------- */
+  .bottomBar{
+    position:fixed;bottom:16px;left:16px;right:16px;
+    background:rgba(255,255,255,.82);backdrop-filter:saturate(180%) blur(16px);-webkit-backdrop-filter:saturate(180%) blur(16px);
+    border:1px solid var(--hair);border-radius:var(--r-lg);
+    display:flex;padding:7px;gap:4px;z-index:15;
+    box-shadow:0 8px 28px rgba(27,26,23,.10);
+  }
+  .bottomBar button{
+    flex:1;background:transparent;color:var(--muted);border:none;border-radius:11px;
+    padding:9px 4px;font-size:11px;font-weight:500;font-family:inherit;
+    display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;
+    transition:background .15s,color .15s;
+  }
+  .bottomBar button:active{background:var(--surface-2);color:var(--text);}
+  .bottomBar svg{color:var(--text);opacity:.8;}
+
+  /* ---------- modal ---------- */
+  .modalOverlay{
+    position:fixed;inset:0;background:rgba(27,26,23,.42);display:none;
+    align-items:flex-end;justify-content:center;z-index:30;
+    opacity:0;transition:opacity .2s;
+  }
+  .modalOverlay.show{display:flex;opacity:1;}
+  .modal{
+    background:var(--surface);width:100%;max-width:480px;
+    border-radius:24px 24px 0 0;padding:8px 22px 30px;max-height:92vh;overflow-y:auto;
+    transform:translateY(20px);transition:transform .26s cubic-bezier(.32,.72,0,1);
+  }
+  .modalOverlay.show .modal{transform:translateY(0);}
+  .modalHandle{width:36px;height:4px;background:var(--hair-strong);border-radius:4px;margin:8px auto 18px;}
+  .modal h2{font-family:'Newsreader',serif;font-weight:600;color:var(--text);margin:0 0 20px;font-size:21px;letter-spacing:-.01em;}
+  .field{margin-bottom:16px;}
+  .field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:7px;letter-spacing:0;}
+  .field input,.field select,.field textarea{
+    width:100%;background:var(--surface);border:1px solid var(--hair-strong);color:var(--text);
+    border-radius:var(--r-md);padding:12px 13px;font-size:15px;font-family:inherit;outline:none;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .field textarea{resize:vertical;min-height:56px;line-height:1.5;}
+  .qtyRow{display:flex;align-items:center;gap:6px;}
+  .qtyRow button{
+    width:42px;height:42px;border-radius:var(--r-md);background:var(--surface);border:1px solid var(--hair-strong);
+    color:var(--text);font-size:20px;font-weight:400;cursor:pointer;transition:background .15s;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .qtyRow button:active{background:var(--surface-2);}
+  .qtyRow span{min-width:44px;text-align:center;font-size:17px;font-weight:600;}
+  .modalBtns{display:flex;gap:10px;margin-top:8px;}
+  .modalBtns button{flex:1;padding:14px;border-radius:var(--r-md);border:none;font-size:15px;font-weight:600;cursor:pointer;font-family:inherit;transition:transform .1s,background .15s;}
+  .modalBtns button:active{transform:scale(.98);}
+  .btnPrimary{background:var(--accent);color:#fff;}
+  .btnPrimary:active{background:var(--accent-press);}
+  .btnGhost{background:var(--surface-2);color:var(--text);}
+  .listTargetRow{display:flex;gap:8px;}
+  .listTargetRow button{
+    flex:1;padding:12px 4px;border-radius:var(--r-md);border:1px solid var(--hair-strong);
+    background:var(--surface);color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;font-family:inherit;
+    transition:background .15s,color .15s,border-color .15s;
+  }
+  .listTargetRow button.sel{background:var(--accent);color:#fff;border-color:var(--accent);font-weight:600;}
+
+  /* ---------- toast ---------- */
+  .toast{
+    position:fixed;bottom:114px;left:50%;transform:translateX(-50%) translateY(10px);
+    background:var(--text);color:#fbfaf8;font-weight:500;
+    padding:11px 18px;border-radius:12px;font-size:13px;z-index:40;
+    opacity:0;transition:opacity .25s, transform .25s;box-shadow:0 10px 28px rgba(0,0,0,.22);
+    pointer-events:none;display:flex;align-items:center;gap:8px;
+  }
+  .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .toast svg{color:var(--green-tint);}
+
+  input[type=file]{display:none;}
+  ::-webkit-scrollbar{width:0;height:0;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brandRow">
+    <div class="brand">
+      <div class="crest">H</div>
+      <div class="brandText">
+        <h1>Move Planner</h1>
+        <div class="sub">Harvard Business School</div>
+      </div>
+    </div>
+    <div class="countBadge" id="countBadge"></div>
+  </div>
+  <div class="progressRow">
+    <div class="progressCard">
+      <div class="label">India shopping</div>
+      <div class="val" id="indiaProgVal">0<span>/0</span></div>
+      <div class="bar"><div class="barFill" id="indiaProgBar" style="width:0%"></div></div>
+    </div>
+    <div class="progressCard">
+      <div class="label">USA shopping</div>
+      <div class="val" id="usaProgVal">0<span>/0</span></div>
+      <div class="bar"><div class="barFill" id="usaProgBar" style="width:0%"></div></div>
+    </div>
+    <div class="progressCard">
+      <div class="label">Packed</div>
+      <div class="val" id="packProgVal">0<span>/0</span></div>
+      <div class="bar"><div class="barFill" id="packProgBar" style="width:0%"></div></div>
+    </div>
+  </div>
+  <div class="tabs">
+    <div class="tab active" data-tab="shopping_india">India</div>
+    <div class="tab" data-tab="shopping_usa">USA</div>
+    <div class="tab" data-tab="packing">Packing</div>
+  </div>
+</header>
+
+<main>
+  <div class="toolbar">
+    <div class="searchWrap">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input type="text" id="searchBox" placeholder="Search items">
+    </div>
+    <select id="catFilter"><option value="">All categories</option></select>
+  </div>
+  <div id="bagSummaryWrap"></div>
+  <div id="listWrap"></div>
+</main>
+
+<button class="fab" id="addFab" aria-label="Add item">
+  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+</button>
+
+<div class="bottomBar">
+  <button id="importBtn">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+    Import
+  </button>
+  <button id="exportBtn">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m8 7 4-4 4 4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+    Export
+  </button>
+  <button id="templateBtn">
+    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg>
+    Template
+  </button>
+</div>
+<input type="file" id="fileInput" accept=".xlsx,.xls">
+
+<div class="modalOverlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modalHandle"></div>
+    <h2 id="modalTitle">Add Item</h2>
+    <div class="field">
+      <label>Item name</label>
+      <input type="text" id="fName" placeholder="e.g. Winter jacket">
+    </div>
+    <div class="field">
+      <label>Category</label>
+      <select id="fCategory"></select>
+    </div>
+    <div class="field">
+      <label>Quantity</label>
+      <div class="qtyRow">
+        <button id="qtyMinus">−</button>
+        <span id="qtyVal">1</span>
+        <button id="qtyPlus">+</button>
+      </div>
+    </div>
+    <div class="field">
+      <label>Comments (optional)</label>
+      <textarea id="fComment" placeholder="Size, color, notes…"></textarea>
+    </div>
+    <div class="field">
+      <label>Add to list</label>
+      <div class="listTargetRow">
+        <button id="targetIndia" class="sel">India</button>
+        <button id="targetUsa">USA</button>
+        <button id="targetPacking">Packing</button>
+      </div>
+    </div>
+    <div class="modalBtns">
+      <button class="btnGhost" id="cancelBtn">Cancel</button>
+      <button class="btnPrimary" id="saveBtn">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+const STORAGE_KEY = 'hbs_move_items_v1';
+const CATEGORIES = ['Clothes','Accessories','Study','Gadgets','Toiletries','Documents','Furniture/Home','Other'];
+
+// Lexicon for offline auto-categorisation. Multi-word phrases are matched as
+// substrings (strong signal); single words are matched per-token after light
+// stemming so "shirts", "chargers", "running shoes" all resolve correctly.
+const CATEGORY_KEYWORDS = {
+  Clothes: ['shirt','tshirt','t-shirt','tee','top','jacket','coat','overcoat','sweater','sweatshirt','hoodie','jeans','pant','trouser','chino','legging','dress','gown','suit','blazer','tuxedo','tux','skirt','short','sock','underwear','innerwear','brief','boxer','thermal','sweater','sneaker','shoe','boot','sandal','slipper','loafer','heel','scarf','muffler','glove','mitten','tie','bowtie','belt','cap','hat','beanie','kurta','saree','salwar','sherwani','lehenga','pajama','pyjama','nightwear','jersey','tracksuit','raincoat','windcheater','vest','cardigan','poncho','swimsuit','trunk','bikini','clothes','clothing','apparel','garment','formal','formals'],
+  Accessories: ['watch','sunglass','goggle','wallet','bag','backpack','duffel','duffle','suitcase','luggage','trolley','jewelry','jewellery','ring','earring','necklace','pendant','bracelet','bangle','chain','brooch','cufflink','umbrella','handbag','purse','clutch','tote','sling','keychain','keyring','lanyard','hairband','hairclip','tiepin','badge'],
+  Study: ['book','textbook','notebook','diary','journal','pen','pencil','marker','sharpie','folder','binder','file','calculator','planner','organizer','stationery','stationary','highlighter','eraser','sharpener','stapler','clip','sticky','postit','post-it','note','casestudy','case-study','sleeve','holder','notepad','register','scale','ruler','glue','tape','envelope','printout','syllabus','course','reader','coursepack'],
+  Gadgets: ['laptop','macbook','notebook','computer','pc','charger','charging','adapter','adaptor','cable','cord','wire','headphone','earphone','earbud','airpod','airpods','headset','phone','smartphone','iphone','mobile','mouse','keyboard','trackpad','powerbank','battery','camera','gopro','tablet','ipad','kindle','ereader','harddrive','hdd','ssd','pendrive','usb','flashdrive','router','modem','dongle','converter','plug','socket','extension','speaker','soundbar','smartwatch','fitbit','monitor','screen','webcam','mic','microphone','projector','console','controller','remote','electronics','gadget','device','vr','drone','stylus'],
+  Toiletries: ['shampoo','conditioner','soap','bodywash','facewash','toothbrush','toothpaste','mouthwash','floss','razor','blade','shaving','shaver','trimmer','deodorant','deo','antiperspirant','perfume','cologne','fragrance','cream','moisturizer','moisturiser','lotion','sunscreen','sunblock','medicine','medication','tablet','pill','vitamin','supplement','firstaid','bandaid','bandage','comb','brush','towel','sanitary','pad','tampon','nail','clipper','cotton','wipe','tissue','sanitizer','sanitiser','makeup','cosmetic','lipstick','kajal','foundation','serum','oil','balm','chapstick','q-tip','earbud','toiletry','toiletries','hygiene','skincare','haircare'],
+  Documents: ['passport','visa','i-20','i20','ds-160','transcript','marksheet','degree','diploma','certificate','admission','admit','insurance','photo','photograph','photocopy','xerox','ssn','statement','offer','letter','id','identity','license','licence','aadhaar','aadhar','pan','vaccination','vaccine','immunization','prescription','contract','lease','document','paperwork','form','receipt','ticket','boarding','itinerary'],
+  'Furniture/Home': ['pillow','cushion','blanket','duvet','quilt','comforter','bedsheet','sheet','bedding','mattress','topper','hanger','lamp','bulb','utensil','cutlery','spoon','fork','knife','plate','bowl','cup','mug','glass','tumbler','kettle','cooker','pan','pot','pressure','iron','steamer','curtain','rug','mat','organizer','organiser','basket','bin','box','storage','rack','shelf','hook','clock','frame','vase','decor','cookware','crockery','tupperware','flask','bottle','lunchbox','thermos','toaster','microwave','blender','mixer','heater','fan','broom','mop','detergent','cleaner','tissue','towel','napkin']
+};
+
+// Build a quick lookup of single-word stems -> [categories]
+const KEYWORD_INDEX = {};
+function stem(w){
+  w = w.toLowerCase().replace(/[^a-z0-9]/g,'');
+  if(w.length > 4){
+    if(w.endsWith('ies')) return w.slice(0,-3)+'y';
+    if(w.endsWith('es')) return w.slice(0,-2);
+    if(w.endsWith('s')) return w.slice(0,-1);
+  }
+  return w;
+}
+for(const cat in CATEGORY_KEYWORDS){
+  CATEGORY_KEYWORDS[cat].forEach(k=>{
+    if(!k.includes(' ') && !k.includes('-')){
+      const s = stem(k);
+      (KEYWORD_INDEX[s] = KEYWORD_INDEX[s] || []).push(cat);
+    }
+  });
+}
+
+function guessCategory(name){
+  const raw = (name||'').toLowerCase().trim();
+  if(!raw) return 'Other';
+  const scores = {};
+  const bump = (cat,n)=>{ scores[cat] = (scores[cat]||0) + n; };
+
+  // 1) multi-word / hyphenated phrases: strong substring signal
+  for(const cat in CATEGORY_KEYWORDS){
+    CATEGORY_KEYWORDS[cat].forEach(k=>{
+      if((k.includes(' ') || k.includes('-')) && raw.includes(k)) bump(cat, 4);
+    });
+  }
+
+  // 2) token-level matching with light stemming
+  const tokens = raw.split(/[^a-z0-9]+/).filter(Boolean);
+  tokens.forEach(tok=>{
+    const s = stem(tok);
+    if(KEYWORD_INDEX[s]){
+      // exact stem hit, weight more for later tokens (the head noun usually comes last)
+      KEYWORD_INDEX[s].forEach(cat=> bump(cat, 3));
+    } else {
+      // partial: token contains a known stem or vice-versa (catches "laptopbag", "tshirts")
+      for(const key in KEYWORD_INDEX){
+        if(key.length >= 4 && (s.includes(key) || key.includes(s)) ){
+          KEYWORD_INDEX[key].forEach(cat=> bump(cat, 1));
+        }
+      }
+    }
+  });
+
+  let best = null, bestScore = 0;
+  for(const cat in scores){
+    if(scores[cat] > bestScore){ bestScore = scores[cat]; best = cat; }
+  }
+  return best || 'Other';
+}
+
+function uid(){ return 'i_' + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+
+const ICON_CHECK = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 13 4 4L19 7"/></svg>';
+const ICON_EDIT = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>';
+const ICON_DEL = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M10 11v6M14 11v6"/></svg>';
+const ICON_LOCK = '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>';
+
+let items = [];
+function load(){
+  try{ items = JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; }catch(e){ items = []; }
+}
+function save(){ localStorage.setItem(STORAGE_KEY, JSON.stringify(items)); }
+
+const LIST_LABELS = { shopping_india: 'Shopping India', shopping_usa: 'Shopping USA', packing: 'Packing' };
+
+let activeTab = 'shopping_india';
+let editingId = null;
+let modalQty = 1;
+let modalTarget = 'shopping_india';
+
+const listWrap = document.getElementById('listWrap');
+const catFilter = document.getElementById('catFilter');
+const searchBox = document.getElementById('searchBox');
+const bagSummaryWrap = document.getElementById('bagSummaryWrap');
+
+CATEGORIES.forEach(c=>{
+  const o = document.createElement('option'); o.value=c; o.textContent=c;
+  catFilter.appendChild(o.cloneNode(true));
+  document.getElementById('fCategory').appendChild(o);
+});
+
+document.querySelectorAll('.tab').forEach(t=>{
+  t.addEventListener('click', ()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+    t.classList.add('active');
+    activeTab = t.dataset.tab;
+    render();
+  });
+});
+catFilter.addEventListener('change', render);
+searchBox.addEventListener('input', render);
+
+function toast(msg){
+  const t = document.getElementById('toast');
+  t.innerHTML = ICON_CHECK + '<span>'+msg+'</span>';
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 1700);
+}
+
+function render(){
+  const q = searchBox.value.trim().toLowerCase();
+  const cat = catFilter.value;
+
+  let list;
+  if(activeTab === 'packing'){
+    // show everything: bought items are active, not-yet-bought show greyed
+    list = items.slice();
+  } else {
+    list = items.filter(i => i.list === activeTab && !i.shopped);
+  }
+  if(cat) list = list.filter(i => i.category === cat);
+  if(q) list = list.filter(i => i.name.toLowerCase().includes(q) || (i.comment||'').toLowerCase().includes(q));
+
+  // sort: category then name
+  list.sort((a,b)=> a.category.localeCompare(b.category) || a.name.localeCompare(b.name));
+
+  listWrap.innerHTML = '';
+  bagSummaryWrap.innerHTML = '';
+
+  if(activeTab === 'packing'){
+    const bags = {};
+    items.filter(i=> (i.list==='packing' || i.shopped) && i.packed && i.bag).forEach(i=>{
+      bags[i.bag] = (bags[i.bag]||0) + (i.qty||1);
+    });
+    const bagKeys = Object.keys(bags).sort();
+    if(bagKeys.length){
+      const div = document.createElement('div');
+      div.className = 'bagSummary';
+      div.innerHTML = '<div class="bsTitle"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8V6a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v2"/><rect x="3" y="8" width="18" height="13" rx="2"/></svg>Bag summary</div>'
+        + bagKeys.map(b=>`<b>Bag ${escapeHtml(b)}</b> · ${bags[b]} item${bags[b]>1?'s':''}`).join('  &nbsp;&nbsp;·&nbsp;&nbsp;  ');
+      bagSummaryWrap.appendChild(div);
+    }
+  }
+
+  if(!list.length){
+    const emptyData = {
+      shopping_india: {t:'Nothing on the India list', d:'Tap the + button to add an item, or import an Excel file.'},
+      shopping_usa: {t:'Nothing on the USA list', d:'Tap the + button to add an item, or import an Excel file.'},
+      packing: {t:'Packing list is empty', d:'Items move here automatically once you check them off your shopping lists.'}
+    };
+    const e = emptyData[activeTab];
+    listWrap.innerHTML = `<div class="empty">
+      <div class="eIcon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg></div>
+      <div class="eTitle">${e.t}</div>${e.d}</div>`;
+    updateProgress();
+    return;
+  }
+
+  list.forEach(item=>{
+    const div = document.createElement('div');
+    const isPackingTab = activeTab === 'packing';
+    // an item can be packed only once it's bought (shopped) or was added straight to packing
+    const isBought = item.shopped || item.list === 'packing';
+    const locked = isPackingTab && !isBought; // greyed: can't pack until bought
+    div.className = 'item' + (locked ? ' greyed' : '');
+
+    const check = document.createElement('div');
+    check.className = 'check'
+      + ((isPackingTab ? item.packed : item.shopped) ? ' checked' : '')
+      + (locked ? ' locked' : '');
+    check.innerHTML = locked ? ICON_LOCK : ICON_CHECK;
+    check.addEventListener('click', ()=>{
+      if(isPackingTab){
+        if(!isBought){ toast('Buy this item first'); return; }
+        item.packed = !item.packed;
+        if(!item.packed) item.bag = item.bag || '';
+      } else {
+        item.shopped = true;
+        item.origin = activeTab;
+        item.list = 'packing';
+        toast(`Moved to packing list`);
+      }
+      save(); render();
+    });
+
+    const body = document.createElement('div');
+    body.className = 'itemBody';
+    body.innerHTML = `
+      <div class="itemTop">
+        <div class="itemName">${escapeHtml(item.name)}</div>
+        ${(item.qty||1) > 1 ? `<div class="qty">Qty ${item.qty}</div>` : ''}
+      </div>
+      <div class="metaRow">
+        <span class="pill cat"><span class="dot"></span>${escapeHtml(item.category)}</span>
+        ${isPackingTab && (item.origin || item.list) !== 'packing' ? `<span class="pill">From ${ (item.origin || item.list)==='shopping_usa' ? 'USA' : 'India' }</span>` : ''}
+        ${isPackingTab && locked ? `<span class="pill warn">Not bought yet</span>` : ''}
+        ${isPackingTab && item.packed && item.bag ? `<span class="bagTag">Bag ${escapeHtml(item.bag)}</span>` : ''}
+      </div>
+      ${item.comment ? `<div class="comment">${escapeHtml(item.comment)}</div>` : ''}
+    `;
+
+    if(isPackingTab && item.packed){
+      const input = document.createElement('input');
+      input.className = 'bagInput';
+      input.type = 'text';
+      input.placeholder = 'Assign bag number…';
+      input.value = item.bag || '';
+      input.addEventListener('change', ()=>{ item.bag = input.value.trim(); save(); render(); });
+      body.appendChild(input);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'itemActions';
+    const editBtn = document.createElement('button');
+    editBtn.className = 'iconBtn';
+    editBtn.innerHTML = ICON_EDIT;
+    editBtn.addEventListener('click', ()=> openModal(item));
+    const delBtn = document.createElement('button');
+    delBtn.className = 'iconBtn del';
+    delBtn.innerHTML = ICON_DEL;
+    delBtn.addEventListener('click', ()=>{
+      if(confirm(`Delete "${item.name}"?`)){
+        items = items.filter(i=>i.id!==item.id);
+        save(); render();
+      }
+    });
+    actions.appendChild(editBtn);
+    actions.appendChild(delBtn);
+
+    div.appendChild(check);
+    div.appendChild(body);
+    div.appendChild(actions);
+    listWrap.appendChild(div);
+  });
+
+  updateProgress();
+}
+
+function setProg(valEl, barEl, done, total){
+  document.getElementById(valEl).innerHTML = `${done}<span>/${total}</span>`;
+  document.getElementById(barEl).style.width = total ? `${(done/total)*100}%` : '0%';
+}
+
+function updateProgress(){
+  const indiaAll = items.filter(i=> i.list==='shopping_india' || i.origin==='shopping_india');
+  setProg('indiaProgVal','indiaProgBar', indiaAll.filter(i=>i.shopped).length, indiaAll.length);
+
+  const usaAll = items.filter(i=> i.list==='shopping_usa' || i.origin==='shopping_usa');
+  setProg('usaProgVal','usaProgBar', usaAll.filter(i=>i.shopped).length, usaAll.length);
+
+  const packAll = items.filter(i=> i.list==='packing' || i.shopped);
+  setProg('packProgVal','packProgBar', packAll.filter(i=>i.packed).length, packAll.length);
+
+  document.getElementById('countBadge').textContent = items.length ? `${items.length} item${items.length>1?'s':''}` : '';
+}
+
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+// Modal logic
+const modalOverlay = document.getElementById('modalOverlay');
+const fName = document.getElementById('fName');
+const fCategory = document.getElementById('fCategory');
+const fComment = document.getElementById('fComment');
+const qtyVal = document.getElementById('qtyVal');
+const targetIndia = document.getElementById('targetIndia');
+const targetUsa = document.getElementById('targetUsa');
+const targetPacking = document.getElementById('targetPacking');
+
+document.getElementById('addFab').addEventListener('click', ()=> openModal(null));
+document.getElementById('cancelBtn').addEventListener('click', closeModal);
+modalOverlay.addEventListener('click', (e)=>{ if(e.target===modalOverlay) closeModal(); });
+document.getElementById('qtyMinus').addEventListener('click', ()=>{ modalQty = Math.max(1, modalQty-1); qtyVal.textContent = modalQty; });
+document.getElementById('qtyPlus').addEventListener('click', ()=>{ modalQty++; qtyVal.textContent = modalQty; });
+targetIndia.addEventListener('click', ()=> setTarget('shopping_india'));
+targetUsa.addEventListener('click', ()=> setTarget('shopping_usa'));
+targetPacking.addEventListener('click', ()=> setTarget('packing'));
+
+function setTarget(t){
+  modalTarget = t;
+  targetIndia.classList.toggle('sel', t==='shopping_india');
+  targetUsa.classList.toggle('sel', t==='shopping_usa');
+  targetPacking.classList.toggle('sel', t==='packing');
+}
+
+fName.addEventListener('input', ()=>{
+  if(!editingId || fCategory.dataset.auto === '1'){
+    fCategory.value = guessCategory(fName.value || '');
+    fCategory.dataset.auto = '1';
+  }
+});
+fCategory.addEventListener('change', ()=>{ fCategory.dataset.auto = '0'; });
+
+function openModal(item){
+  editingId = item ? item.id : null;
+  document.getElementById('modalTitle').textContent = item ? 'Edit Item' : 'Add Item';
+  fName.value = item ? item.name : '';
+  fCategory.value = item ? item.category : 'Other';
+  fCategory.dataset.auto = item ? '0' : '1';
+  fComment.value = item ? (item.comment||'') : '';
+  modalQty = item ? (item.qty||1) : 1;
+  qtyVal.textContent = modalQty;
+  setTarget(item ? (item.shopped ? 'packing' : item.list) : activeTab);
+  modalOverlay.classList.add('show');
+  setTimeout(()=>fName.focus(), 100);
+}
+function closeModal(){ modalOverlay.classList.remove('show'); }
+
+document.getElementById('saveBtn').addEventListener('click', ()=>{
+  const name = fName.value.trim();
+  if(!name){ toast('Please enter an item name'); return; }
+  const category = fCategory.value;
+  const comment = fComment.value.trim();
+
+  if(editingId){
+    const item = items.find(i=>i.id===editingId);
+    item.name = name; item.category = category; item.qty = modalQty; item.comment = comment;
+  } else {
+    items.push({
+      id: uid(), name, category, qty: modalQty, comment,
+      list: modalTarget, shopped: modalTarget==='packing', origin: modalTarget==='packing' ? '' : modalTarget,
+      packed: false, bag: ''
+    });
+  }
+  save();
+  closeModal();
+  render();
+});
+
+// Excel import/export
+document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('fileInput').click());
+document.getElementById('fileInput').addEventListener('change', (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = (evt)=>{
+    try{
+      const wb = XLSX.read(evt.target.result, {type:'binary'});
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(sheet, {defval:''});
+      let added = 0;
+      rows.forEach(r=>{
+        const name = String(r['Item'] || r['Name'] || r['item'] || r['name'] || '').trim();
+        if(!name) return;
+        const category = String(r['Category'] || r['category'] || '').trim() || guessCategory(name);
+        const qty = parseInt(r['Quantity'] || r['Qty'] || r['quantity'] || r['qty'] || 1, 10) || 1;
+        const comment = String(r['Comments'] || r['Comment'] || r['comments'] || r['comment'] || '').trim();
+        let listVal = String(r['List'] || r['list'] || 'shopping india').trim().toLowerCase().replace(/\s+/g,'_');
+        if(listVal === 'shopping' || listVal === 'india') listVal = 'shopping_india';
+        if(listVal === 'usa') listVal = 'shopping_usa';
+        if(!['shopping_india','shopping_usa','packing'].includes(listVal)) listVal = 'shopping_india';
+        const originVal = String(r['Origin'] || r['origin'] || '').trim().toLowerCase().replace(/\s+/g,'_');
+        const shoppedVal = String(r['Shopped'] || r['shopped'] || '').trim().toLowerCase();
+        const packedVal = String(r['Packed'] || r['packed'] || '').trim().toLowerCase();
+        const bagVal = String(r['Bag'] || r['bag'] || r['Bag Number'] || '').trim();
+        const shopped = listVal === 'packing' || shoppedVal === 'yes' || shoppedVal === 'true' || shoppedVal === '1';
+        const packed = packedVal === 'yes' || packedVal === 'true' || packedVal === '1';
+        const origin = ['shopping_india','shopping_usa'].includes(originVal) ? originVal : (listVal !== 'packing' ? listVal : '');
+        items.push({
+          id: uid(), name, category: CATEGORIES.includes(category) ? category : guessCategory(name),
+          qty, comment, list: listVal, shopped, packed, bag: bagVal, origin
+        });
+        added++;
+      });
+      save(); render();
+      toast(`Imported ${added} item${added>1?'s':''}`);
+    }catch(err){
+      toast('Import failed: check file format');
+      console.error(err);
+    }
+    e.target.value = '';
+  };
+  reader.readAsBinaryString(file);
+});
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  if(!items.length){ toast('Nothing to export yet'); return; }
+  const rows = items.map(i=>({
+    Item: i.name,
+    Category: i.category,
+    Quantity: i.qty || 1,
+    Comments: i.comment || '',
+    List: (i.list==='packing' || i.shopped) ? 'packing' : i.list,
+    Origin: i.origin === 'shopping_usa' ? 'USA' : (i.origin === 'shopping_india' ? 'India' : ''),
+    Shopped: i.shopped ? 'Yes' : 'No',
+    Packed: i.packed ? 'Yes' : 'No',
+    Bag: i.bag || ''
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Items');
+  XLSX.writeFile(wb, `hbs_move_list_${new Date().toISOString().slice(0,10)}.xlsx`);
+});
+
+document.getElementById('templateBtn').addEventListener('click', ()=>{
+  const rows = [
+    {Item:'Winter jacket', Category:'Clothes', Quantity:1, Comments:'Size M, navy blue', List:'shopping_india', Origin:'', Shopped:'No', Packed:'No', Bag:''},
+    {Item:'Laptop charger', Category:'Gadgets', Quantity:1, Comments:'', List:'shopping_usa', Origin:'', Shopped:'No', Packed:'No', Bag:''},
+    {Item:'Passport', Category:'Documents', Quantity:1, Comments:'Keep in carry-on', List:'packing', Origin:'India', Shopped:'Yes', Packed:'Yes', Bag:'1'}
+  ];
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Items');
+  XLSX.writeFile(wb, 'hbs_move_template.xlsx');
+});
+
+load();
+render();
+</script>
+</body>
+</html>
