@@ -344,7 +344,7 @@
     </div>
     <div class="headRight">
       <span class="countBadge" id="countBadge"></span>
-      <button class="iconBtnTop" id="bagBtn" aria-label="Bags" style="display:none">
+      <button class="iconBtnTop" id="bagBtn" aria-label="Bags">
         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8V6a3 3 0 0 1 3-3h6a3 3 0 0 1 3 3v2"/><rect x="3" y="8" width="18" height="13" rx="2"/><path d="M3 13h18"/></svg>
       </button>
       <button class="iconBtnTop" id="openDataBtn" aria-label="Import & export">
@@ -478,7 +478,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script>
 const STORAGE_KEY = 'hbs_move_items_v1';
-const CATEGORIES = ['Clothes','Accessories','Study','Gadgets','Toiletries','Documents','Furniture/Home','Other'];
+const CATEGORIES = ['Clothes','Accessories','Study','Gadgets','Toiletries','Documents','Furniture/Home','Food','Other'];
 
 // Lexicon for offline auto-categorisation. Multi-word phrases are matched as
 // substrings (strong signal); single words are matched per-token after light
@@ -490,7 +490,12 @@ const CATEGORY_KEYWORDS = {
   Gadgets: ['laptop','macbook','notebook','computer','pc','charger','charging','adapter','adaptor','cable','cord','wire','headphone','earphone','earbud','airpod','airpods','headset','phone','smartphone','iphone','mobile','mouse','keyboard','trackpad','powerbank','battery','camera','gopro','tablet','ipad','kindle','ereader','harddrive','hdd','ssd','pendrive','usb','flashdrive','router','modem','dongle','converter','plug','socket','extension','speaker','soundbar','smartwatch','fitbit','monitor','screen','webcam','mic','microphone','projector','console','controller','remote','electronics','gadget','device','vr','drone','stylus'],
   Toiletries: ['shampoo','conditioner','soap','bodywash','facewash','toothbrush','toothpaste','mouthwash','floss','razor','blade','shaving','shaver','trimmer','deodorant','deo','antiperspirant','perfume','cologne','fragrance','cream','moisturizer','moisturiser','lotion','sunscreen','sunblock','medicine','medication','tablet','pill','vitamin','supplement','firstaid','bandaid','bandage','comb','brush','towel','sanitary','pad','tampon','nail','clipper','cotton','wipe','tissue','sanitizer','sanitiser','makeup','cosmetic','lipstick','kajal','foundation','serum','oil','balm','chapstick','q-tip','earbud','toiletry','toiletries','hygiene','skincare','haircare'],
   Documents: ['passport','visa','i-20','i20','ds-160','transcript','marksheet','degree','diploma','certificate','admission','admit','insurance','photo','photograph','photocopy','xerox','ssn','statement','offer','letter','id','identity','license','licence','aadhaar','aadhar','pan','vaccination','vaccine','immunization','prescription','contract','lease','document','paperwork','form','receipt','ticket','boarding','itinerary'],
-  'Furniture/Home': ['pillow','cushion','blanket','duvet','quilt','comforter','bedsheet','sheet','bedding','mattress','topper','hanger','lamp','bulb','utensil','cutlery','spoon','fork','knife','plate','bowl','cup','mug','glass','tumbler','kettle','cooker','pan','pot','pressure','iron','steamer','curtain','rug','mat','organizer','organiser','basket','bin','box','storage','rack','shelf','hook','clock','frame','vase','decor','cookware','crockery','tupperware','flask','bottle','lunchbox','thermos','toaster','microwave','blender','mixer','heater','fan','broom','mop','detergent','cleaner','tissue','towel','napkin']
+  'Furniture/Home': ['pillow','cushion','blanket','duvet','quilt','comforter','bedsheet','sheet','bedding','mattress','topper','hanger','lamp','bulb','utensil','cutlery','spoon','fork','knife','plate','bowl','cup','mug','glass','tumbler','kettle','cooker','pan','pot','pressure','iron','steamer','curtain','rug','mat','organizer','organiser','basket','bin','box','storage','rack','shelf','hook','clock','frame','vase','decor','cookware','crockery','tupperware','flask','bottle','lunchbox','thermos','toaster','microwave','blender','mixer','heater','fan','broom','mop','detergent','cleaner','tissue','towel','napkin'],
+  Food: ['food','snack','snacks','spice','spices','masala','masaala','tea','chai','coffee','pickle','achaar','achar','papad','namkeen','biscuit','cookie','chocolate','candy','sweets','mithai','laddu','barfi','dryfruit','dry-fruit','almond','cashew','raisin','pista','walnut','nuts','flour','atta','rice','dal','lentil','pulse','noodle','noodles','maggi','pasta','sauce','ketchup','jam','honey','oil','ghee','butter','sugar','salt','cereal','oats','granola','bar','proteinbar','powder','seasoning','herb','condiment','chutney','poha','rava','besan','sabudana','vermicelli','sevai','instant','ready-to-eat','readytoeat','soup','seeds','jaggery','gud','supplement','protein','electrolyte','squash','syrup',
+    // spices
+    'turmeric','haldi','cumin','jeera','zeera','coriander','dhania','chilli','chili','chilly','mirch','mirchi','garam','cardamom','elaichi','clove','laung','cinnamon','dalchini','mustard','sarso','rai','fenugreek','methi','kasuri','asafoetida','hing','bayleaf','tejpatta','peppercorn','kalimirch','fennel','saunf','nutmeg','jaiphal','mace','javitri','anise','tamarind','imli','curryleaf','curry','ajwain','carom','saffron','kesar','paprika','oregano','basil','thyme','rosemary','cinammon','amchur','amchoor','chaat','sambar','sambhar','rasam','biryani','kalanamak','peppercorns','nutmegs','tikka','tandoori','pavbhaji','kitchenking','everestmasala','mdh',
+    // cooking ingredients
+    'ginger','adrak','garlic','lehsun','onion','vinegar','soy','soya','coconut','sesame','til','poppy','khus','chickpea','chana','chole','rajma','kidneybean','moong','mung','urad','toor','arhar','masoor','besan','semolina','suji','cornflour','cornstarch','maida','cocoa','baking','yeast','bakingsoda','bakingpowder','custard','vanilla','essence','stock','broth','paste','puree','milkpowder','coconutmilk','condensedmilk','peanut','peanutbutter','dates','khajoor','fig','anjeer','apricot','prune','cranberry']
 };
 
 // Build a quick lookup of single-word stems -> [categories]
@@ -706,7 +711,6 @@ function render(){
   main.sort(sortFn); done.sort(sortFn);
 
   listWrap.innerHTML = '';
-  bagBtn.style.display = isPackingTab ? '' : 'none';
 
   if(!main.length && !done.length){
     const emptyData = {
