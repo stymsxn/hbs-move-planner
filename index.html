@@ -4,6 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Move Planner</title>
+<link rel="icon" type="image/png" href="logo.png">
+<link rel="apple-touch-icon" href="logo.png">
+<meta name="apple-mobile-web-app-title" content="Move Planner">
+<meta name="theme-color" content="#A51C30">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600&display=swap" rel="stylesheet">
@@ -33,7 +37,7 @@
     margin:0;
     font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
     background:var(--bg);color:var(--text);
-    padding-bottom:108px;
+    padding-bottom:100px;
     font-size:15px;line-height:1.45;
     -webkit-font-smoothing:antialiased;
   }
@@ -51,12 +55,16 @@
   .brandRow{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px;}
   .brand{display:flex;align-items:center;gap:11px;}
   .crest{
-    width:34px;height:34px;border-radius:10px;flex:none;
-    background:var(--accent);color:#fff;
+    height:38px;flex:none;
     display:flex;align-items:center;justify-content:center;
-    font-family:'Newsreader',serif;font-weight:600;font-size:17px;
-    letter-spacing:.01em;
   }
+  .crest img{height:38px;width:auto;display:block;}
+  /* fallback if logo.png is missing */
+  .crest.crest-fallback{
+    width:34px;height:34px;border-radius:10px;background:var(--accent);color:#fff;
+    font-family:'Newsreader',serif;font-weight:600;font-size:17px;letter-spacing:.01em;
+  }
+  .crest.crest-fallback::after{content:"H";}
   .brandText h1{
     font-family:'Newsreader',serif;font-size:19px;font-weight:600;
     margin:0;letter-spacing:-.01em;line-height:1.1;
@@ -164,9 +172,19 @@
   .empty .eIcon{width:48px;height:48px;border-radius:14px;background:var(--surface-2);display:flex;align-items:center;justify-content:center;margin:0 auto 14px;color:var(--faint);}
   .empty .eTitle{font-family:'Newsreader',serif;font-size:17px;font-weight:600;color:var(--text);margin-bottom:5px;}
 
+  /* ---------- header right + top icon button ---------- */
+  .headRight{display:flex;align-items:center;gap:10px;flex:none;}
+  .iconBtnTop{
+    width:38px;height:38px;border-radius:11px;flex:none;
+    background:var(--surface);border:1px solid var(--hair);color:var(--text);
+    display:flex;align-items:center;justify-content:center;cursor:pointer;
+    transition:background .15s,border-color .15s,transform .1s;
+  }
+  .iconBtnTop:active{transform:scale(.94);background:var(--surface-2);}
+
   /* ---------- fab ---------- */
   .fab{
-    position:fixed;bottom:90px;right:20px;width:54px;height:54px;border-radius:17px;
+    position:fixed;bottom:22px;right:20px;width:56px;height:56px;border-radius:18px;
     background:var(--accent);color:#fff;border:none;
     box-shadow:0 6px 20px rgba(165,28,48,.34);cursor:pointer;z-index:20;
     display:flex;align-items:center;justify-content:center;
@@ -174,22 +192,47 @@
   }
   .fab:active{transform:scale(.92);background:var(--accent-press);}
 
-  /* ---------- bottom bar ---------- */
-  .bottomBar{
-    position:fixed;bottom:16px;left:16px;right:16px;
-    background:rgba(255,255,255,.82);backdrop-filter:saturate(180%) blur(16px);-webkit-backdrop-filter:saturate(180%) blur(16px);
-    border:1px solid var(--hair);border-radius:var(--r-lg);
-    display:flex;padding:7px;gap:4px;z-index:15;
-    box-shadow:0 8px 28px rgba(27,26,23,.10);
+  /* ---------- data page ---------- */
+  .page{
+    position:fixed;inset:0;z-index:50;background:var(--bg);
+    display:flex;flex-direction:column;
+    transform:translateX(100%);transition:transform .3s cubic-bezier(.32,.72,0,1);
+    visibility:hidden;
   }
-  .bottomBar button{
-    flex:1;background:transparent;color:var(--muted);border:none;border-radius:11px;
-    padding:9px 4px;font-size:11px;font-weight:500;font-family:inherit;
-    display:flex;flex-direction:column;align-items:center;gap:4px;cursor:pointer;
-    transition:background .15s,color .15s;
+  .page.show{transform:translateX(0);visibility:visible;}
+  .pageHead{
+    display:flex;align-items:center;gap:6px;padding:16px 16px 14px;
+    border-bottom:1px solid var(--hair);
+    background:rgba(251,250,248,.85);backdrop-filter:saturate(180%) blur(16px);-webkit-backdrop-filter:saturate(180%) blur(16px);
   }
-  .bottomBar button:active{background:var(--surface-2);color:var(--text);}
-  .bottomBar svg{color:var(--text);opacity:.8;}
+  .pageHead h2{font-family:'Newsreader',serif;font-size:19px;font-weight:600;margin:0;letter-spacing:-.01em;}
+  .backBtn{
+    width:38px;height:38px;border-radius:11px;flex:none;border:none;background:transparent;
+    color:var(--text);display:flex;align-items:center;justify-content:center;cursor:pointer;
+    transition:background .15s;
+  }
+  .backBtn:active{background:var(--surface-2);}
+  .pageBody{padding:18px 20px;overflow-y:auto;}
+  .actionList{display:flex;flex-direction:column;gap:10px;}
+  .actionRow{
+    display:flex;align-items:center;gap:14px;width:100%;text-align:left;cursor:pointer;
+    background:var(--surface);border:1px solid var(--hair);border-radius:var(--r-lg);
+    padding:15px 15px;font-family:inherit;transition:border-color .15s,transform .1s;
+  }
+  .actionRow:active{transform:scale(.99);border-color:var(--hair-strong);}
+  .actIcon{
+    width:42px;height:42px;border-radius:12px;flex:none;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .actIcon.imp{background:var(--accent-tint);color:var(--accent);}
+  .actIcon.exp{background:var(--green-tint);color:var(--green);}
+  .actIcon.tpl{background:var(--gold-tint);color:var(--gold);}
+  .actText{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px;}
+  .actText b{font-size:15px;font-weight:600;letter-spacing:-.01em;}
+  .actText small{font-size:12.5px;color:var(--muted);}
+  .actChevron{color:var(--faint);flex:none;display:flex;}
+  .pageNote{font-size:13px;color:var(--muted);line-height:1.6;margin:18px 4px 0;}
+  .pageNote b{color:var(--text);font-weight:600;}
 
   /* ---------- modal ---------- */
   .modalOverlay{
@@ -256,13 +299,18 @@
 <header>
   <div class="brandRow">
     <div class="brand">
-      <div class="crest">H</div>
+      <div class="crest"><img src="logo.png" alt="Harvard Business School" onerror="this.parentNode.classList.add('crest-fallback');this.remove();"></div>
       <div class="brandText">
         <h1>Move Planner</h1>
         <div class="sub">Harvard Business School</div>
       </div>
     </div>
-    <div class="countBadge" id="countBadge"></div>
+    <div class="headRight">
+      <span class="countBadge" id="countBadge"></span>
+      <button class="iconBtnTop" id="openDataBtn" aria-label="Import & export">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+      </button>
+    </div>
   </div>
   <div class="progressRow">
     <div class="progressCard">
@@ -304,21 +352,37 @@
   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
 </button>
 
-<div class="bottomBar">
-  <button id="importBtn">
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-    Import
-  </button>
-  <button id="exportBtn">
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m8 7 4-4 4 4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
-    Export
-  </button>
-  <button id="templateBtn">
-    <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg>
-    Template
-  </button>
-</div>
 <input type="file" id="fileInput" accept=".xlsx,.xls">
+
+<!-- ===== Data page (Import / Export / Template) ===== -->
+<section class="page" id="dataPage" aria-hidden="true">
+  <div class="pageHead">
+    <button class="backBtn" id="closeDataBtn" aria-label="Back">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+    </button>
+    <h2>Import &amp; Export</h2>
+  </div>
+  <div class="pageBody">
+    <div class="actionList">
+      <button class="actionRow" id="importBtn">
+        <span class="actIcon imp"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="m8 11 4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>
+        <span class="actText"><b>Import from Excel</b><small>Bulk-add items from an .xlsx file</small></span>
+        <span class="actChevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+      </button>
+      <button class="actionRow" id="exportBtn">
+        <span class="actIcon exp"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3"/><path d="m8 7 4-4 4 4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg></span>
+        <span class="actText"><b>Export to Excel</b><small>Download your full list as a backup</small></span>
+        <span class="actChevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+      </button>
+      <button class="actionRow" id="templateBtn">
+        <span class="actIcon tpl"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 13h6M9 17h4"/></svg></span>
+        <span class="actText"><b>Download template</b><small>A sample .xlsx with the right columns</small></span>
+        <span class="actChevron"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg></span>
+      </button>
+    </div>
+    <p class="pageNote">Your list lives on this device only. Export regularly to keep a backup, or to move items to another phone or laptop. Importing <b>adds</b> to your current list — it doesn't replace it.</p>
+  </div>
+</section>
 
 <div class="modalOverlay" id="modalOverlay">
   <div class="modal">
@@ -706,6 +770,15 @@ document.getElementById('saveBtn').addEventListener('click', ()=>{
   render();
 });
 
+// Data page navigation
+const dataPage = document.getElementById('dataPage');
+document.getElementById('openDataBtn').addEventListener('click', ()=>{
+  dataPage.classList.add('show'); dataPage.setAttribute('aria-hidden','false');
+});
+document.getElementById('closeDataBtn').addEventListener('click', ()=>{
+  dataPage.classList.remove('show'); dataPage.setAttribute('aria-hidden','true');
+});
+
 // Excel import/export
 document.getElementById('importBtn').addEventListener('click', ()=> document.getElementById('fileInput').click());
 document.getElementById('fileInput').addEventListener('change', (e)=>{
@@ -742,6 +815,7 @@ document.getElementById('fileInput').addEventListener('change', (e)=>{
         added++;
       });
       save(); render();
+      dataPage.classList.remove('show'); dataPage.setAttribute('aria-hidden','true');
       toast(`Imported ${added} item${added>1?'s':''}`);
     }catch(err){
       toast('Import failed: check file format');
