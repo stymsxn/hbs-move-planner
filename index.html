@@ -128,9 +128,9 @@
     display:grid;grid-template-rows:0fr;overflow:hidden;
     transition:grid-template-rows .3s cubic-bezier(.32,.72,0,1);
   }
-  .doneBody > *{min-height:0;}
+  .doneBody > .doneInner{min-height:0;}
   .doneBody.open{grid-template-rows:1fr;}
-  .doneBody.open{padding-top:8px;}
+  .doneInner{padding-top:8px;}
   .allDone{text-align:center;color:var(--faint);font-size:13px;padding:24px 10px 4px;}
 
   /* ---------- bag cards ---------- */
@@ -750,7 +750,10 @@ function render(){
 
     const bodyWrap = document.createElement('div');
     bodyWrap.className = 'doneBody' + (doneOpen[activeTab] ? ' open' : '');
-    done.forEach(item => bodyWrap.appendChild(makeItemRow(item)));
+    const inner = document.createElement('div');
+    inner.className = 'doneInner';
+    done.forEach(item => inner.appendChild(makeItemRow(item)));
+    bodyWrap.appendChild(inner);
     section.appendChild(bodyWrap);
 
     listWrap.appendChild(section);
