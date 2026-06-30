@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1, user-scalable=no">
 <title>Move Planner</title>
 <link rel="icon" type="image/png" href="logo.png">
-<link rel="apple-touch-icon" href="logo.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-title" content="Move Planner">
 <meta name="theme-color" content="#A51C30">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -236,18 +236,26 @@
 
   /* ---------- modal ---------- */
   .modalOverlay{
-    position:fixed;inset:0;background:rgba(27,26,23,.42);display:none;
+    position:fixed;inset:0;background:rgba(27,26,23,.42);display:flex;
     align-items:flex-end;justify-content:center;z-index:30;
-    opacity:0;transition:opacity .2s;
+    opacity:0;visibility:hidden;
+    transition:opacity .32s ease, visibility .32s ease;
   }
-  .modalOverlay.show{display:flex;opacity:1;}
+  .modalOverlay.show{opacity:1;visibility:visible;}
   .modal{
     background:var(--surface);width:100%;max-width:480px;
-    border-radius:24px 24px 0 0;padding:8px 22px 30px;max-height:92vh;overflow-y:auto;
-    transform:translateY(20px);transition:transform .26s cubic-bezier(.32,.72,0,1);
+    border-radius:24px 24px 0 0;padding:0 22px 30px;max-height:92vh;overflow-y:auto;
+    transform:translateY(100%);
+    transition:transform .42s cubic-bezier(.32,.72,0,1);
+    will-change:transform;
   }
   .modalOverlay.show .modal{transform:translateY(0);}
-  .modalHandle{width:36px;height:4px;background:var(--hair-strong);border-radius:4px;margin:8px auto 18px;}
+  .modal.dragging{transition:none;}
+  /* larger, interactive grab area */
+  .modalHandleHit{padding:12px 0 14px;margin:0 -22px;display:flex;justify-content:center;cursor:grab;touch-action:none;}
+  .modalHandleHit:active{cursor:grabbing;}
+  .modalHandle{width:38px;height:5px;background:var(--hair-strong);border-radius:5px;transition:background .15s;}
+  .modalHandleHit:active .modalHandle{background:var(--muted);}
   .modal h2{font-family:'Newsreader',serif;font-weight:600;color:var(--text);margin:0 0 20px;font-size:21px;letter-spacing:-.01em;}
   .field{margin-bottom:16px;}
   .field label{display:block;font-size:12px;font-weight:600;color:var(--muted);margin-bottom:7px;letter-spacing:0;}
@@ -308,7 +316,7 @@
     <div class="headRight">
       <span class="countBadge" id="countBadge"></span>
       <button class="iconBtnTop" id="openDataBtn" aria-label="Import & export">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="M17 8l-5-5-5 5"/><path d="M12 3v12"/></svg>
       </button>
     </div>
   </div>
@@ -385,8 +393,8 @@
 </section>
 
 <div class="modalOverlay" id="modalOverlay">
-  <div class="modal">
-    <div class="modalHandle"></div>
+  <div class="modal" id="modalSheet">
+    <div class="modalHandleHit" id="modalHandleHit"><div class="modalHandle"></div></div>
     <h2 id="modalTitle">Add Item</h2>
     <div class="field">
       <label>Item name</label>
@@ -749,6 +757,41 @@ function openModal(item){
 }
 function closeModal(){ modalOverlay.classList.remove('show'); }
 
+// Grab-handle: tap to close, or drag/swipe down to dismiss
+const modalSheet = document.getElementById('modalSheet');
+const modalHandleHit = document.getElementById('modalHandleHit');
+let dragStartY = null, dragDelta = 0, dragMoved = false;
+
+function dragStart(e){
+  dragStartY = (e.touches ? e.touches[0].clientY : e.clientY);
+  dragDelta = 0; dragMoved = false;
+  modalSheet.classList.add('dragging');
+}
+function dragMove(e){
+  if(dragStartY === null) return;
+  const y = (e.touches ? e.touches[0].clientY : e.clientY);
+  dragDelta = Math.max(0, y - dragStartY);
+  if(dragDelta > 4) dragMoved = true;
+  modalSheet.style.transform = 'translateY(' + dragDelta + 'px)';
+}
+function dragEnd(){
+  if(dragStartY === null) return;
+  dragStartY = null;
+  modalSheet.classList.remove('dragging');
+  modalSheet.style.transform = '';      // let CSS take over the animation
+  if(dragDelta > 90){ closeModal(); }    // swipe far enough -> dismiss
+  dragDelta = 0;
+}
+
+modalHandleHit.addEventListener('touchstart', dragStart, {passive:true});
+modalHandleHit.addEventListener('touchmove', dragMove, {passive:true});
+modalHandleHit.addEventListener('touchend', dragEnd);
+modalHandleHit.addEventListener('mousedown', dragStart);
+window.addEventListener('mousemove', dragMove);
+window.addEventListener('mouseup', dragEnd);
+// plain tap/click on the handle closes
+modalHandleHit.addEventListener('click', ()=>{ if(!dragMoved) closeModal(); });
+
 document.getElementById('saveBtn').addEventListener('click', ()=>{
   const name = fName.value.trim();
   if(!name){ toast('Please enter an item name'); return; }
@@ -758,6 +801,17 @@ document.getElementById('saveBtn').addEventListener('click', ()=>{
   if(editingId){
     const item = items.find(i=>i.id===editingId);
     item.name = name; item.category = category; item.qty = modalQty; item.comment = comment;
+    // honour a list change from the picker (e.g. moving a bought item back to a shopping list)
+    if(modalTarget === 'packing'){
+      item.list = 'packing';
+    } else {
+      // moved back to a shopping list: it's no longer bought or packed
+      item.list = modalTarget;
+      item.shopped = false;
+      item.packed = false;
+      item.bag = '';
+      item.origin = '';
+    }
   } else {
     items.push({
       id: uid(), name, category, qty: modalQty, comment,
