@@ -243,7 +243,7 @@
     transition:background .15s;
   }
   .backBtn:active{background:var(--surface-2);}
-  .pageBody{padding:18px 20px;overflow-y:auto;}
+  .pageBody{padding:18px 20px calc(18px + env(safe-area-inset-bottom));overflow-y:auto;flex:1;display:flex;flex-direction:column;}
   .actionList{display:flex;flex-direction:column;gap:10px;}
   .actionRow{
     display:flex;align-items:center;gap:14px;width:100%;text-align:left;cursor:pointer;
@@ -264,6 +264,10 @@
   .actChevron{color:var(--faint);flex:none;display:flex;}
   .pageNote{font-size:13px;color:var(--muted);line-height:1.6;margin:18px 4px 0;}
   .pageNote b{color:var(--text);font-weight:600;}
+  .devInfo{margin-top:auto;padding-top:24px;border-top:1px solid var(--hair);text-align:center;}
+  .devLabel{font-size:10px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.08em;}
+  .devName{font-family:'Newsreader',serif;font-size:14px;color:var(--muted);margin-top:4px;}
+  .devVersion{font-size:11px;color:var(--faint);margin-top:3px;letter-spacing:.02em;}
 
   /* ---------- modal ---------- */
   .modalOverlay{
@@ -421,6 +425,10 @@
       </button>
     </div>
     <p class="pageNote">Your list lives on this device only. Export regularly to keep a backup, or to move items to another phone or laptop. Importing <b>adds</b> to your current list — it doesn't replace it.</p>
+    <div class="devInfo">
+      <div class="devVersion">Move Planner · v1.3.0</div>
+      <div class="devName">Satyam Saxena</div>
+    </div>
   </div>
 </section>
 
