@@ -112,6 +112,24 @@
   }
   input:focus,select:focus,textarea:focus{border-color:var(--accent)!important;box-shadow:0 0 0 3px var(--accent-tint);}
 
+  /* ---------- collapsible category groups ---------- */
+  .catGroup{margin-bottom:4px;}
+  .catHead{
+    display:flex;align-items:center;gap:8px;width:100%;cursor:pointer;
+    background:transparent;border:none;font-family:inherit;padding:9px 2px;color:var(--text);
+  }
+  .catChevron{transition:transform .25s ease;flex:none;color:var(--faint);}
+  .catHead.collapsed .catChevron{transform:rotate(-90deg);}
+  .catName{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);}
+  .catCount{font-size:11px;font-weight:600;color:var(--muted);background:var(--surface-2);border-radius:999px;padding:1px 8px;min-width:20px;text-align:center;}
+  .catBody{
+    display:grid;grid-template-rows:1fr;overflow:hidden;
+    transition:grid-template-rows .3s cubic-bezier(.32,.72,0,1);
+  }
+  .catBody.collapsed{grid-template-rows:0fr;}
+  .catBody > .catInner{min-height:0;}
+  .catInner{padding-top:2px;}
+
   /* ---------- collapsible "done" section ---------- */
   .doneSection{margin-top:18px;}
   .doneHead{
@@ -454,6 +472,7 @@
     <div class="field">
       <label>Category</label>
       <select id="fCategory"></select>
+      <input type="text" id="fCustomCat" placeholder="Enter a category name" style="display:none;margin-top:8px;">
     </div>
     <div class="field">
       <label>Quantity</label>
@@ -591,9 +610,25 @@ const bagBtn = document.getElementById('bagBtn');
 
 CATEGORIES.forEach(c=>{
   const o = document.createElement('option'); o.value=c; o.textContent=c;
-  catFilter.appendChild(o.cloneNode(true));
   document.getElementById('fCategory').appendChild(o);
 });
+// custom free-text option in the item form
+const customOpt = document.createElement('option');
+customOpt.value = '__custom__'; customOpt.textContent = 'Custom…';
+document.getElementById('fCategory').appendChild(customOpt);
+
+// (re)build the top category filter, including any custom categories in use
+function populateCatFilter(){
+  const cur = catFilter.value;
+  const custom = [...new Set(items.map(i=>i.category).filter(c=> c && !CATEGORIES.includes(c)))].sort();
+  catFilter.innerHTML = '<option value="">All categories</option>';
+  [...CATEGORIES, ...custom].forEach(c=>{
+    const o = document.createElement('option'); o.value=c; o.textContent=c;
+    catFilter.appendChild(o);
+  });
+  catFilter.value = cur; // preserve selection if still valid
+}
+populateCatFilter();
 
 document.querySelectorAll('.tab').forEach(t=>{
   t.addEventListener('click', ()=>{
@@ -615,6 +650,10 @@ function toast(msg){
 
 // remember whether each list's "done" section is expanded
 const doneOpen = { shopping_india:false, shopping_usa:false, packing:false };
+// collapsed category groups, keyed by "tab::category"
+const catCollapsed = new Set();
+function catRank(c){ if(c==='Other') return 9999; const i = CATEGORIES.indexOf(c); return i<0 ? 5000 : i; }
+function catSort(a,b){ return catRank(a)-catRank(b) || a.localeCompare(b); }
 
 function makeItemRow(item){
   const isPackingTab = activeTab === 'packing';
@@ -696,6 +735,7 @@ function makeItemRow(item){
 }
 
 function render(){
+  populateCatFilter();
   const q = searchBox.value.trim().toLowerCase();
   const cat = catFilter.value;
   const isPackingTab = activeTab === 'packing';
@@ -735,9 +775,41 @@ function render(){
     return;
   }
 
-  main.forEach(item => listWrap.appendChild(makeItemRow(item)));
+  // group active items by category, each group collapsible
+  if(main.length){
+    const groups = {};
+    main.forEach(it=>{ (groups[it.category] = groups[it.category] || []).push(it); });
+    Object.keys(groups).sort(catSort).forEach(catName=>{
+      const key = activeTab + '::' + catName;
+      const collapsed = catCollapsed.has(key);
+      const rows = groups[catName].sort((a,b)=> a.name.localeCompare(b.name));
 
-  if(!main.length){
+      const group = document.createElement('div');
+      group.className = 'catGroup';
+
+      const head = document.createElement('button');
+      head.className = 'catHead' + (collapsed ? ' collapsed' : '');
+      head.innerHTML = `
+        <svg class="catChevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+        <span class="catName">${escapeHtml(catName)}</span>
+        <span class="catCount">${rows.length}</span>`;
+      head.addEventListener('click', ()=>{
+        if(collapsed) catCollapsed.delete(key); else catCollapsed.add(key);
+        render();
+      });
+      group.appendChild(head);
+
+      const body = document.createElement('div');
+      body.className = 'catBody' + (collapsed ? ' collapsed' : '');
+      const inner = document.createElement('div');
+      inner.className = 'catInner';
+      rows.forEach(item => inner.appendChild(makeItemRow(item)));
+      body.appendChild(inner);
+      group.appendChild(body);
+
+      listWrap.appendChild(group);
+    });
+  } else {
     const note = document.createElement('div');
     note.className = 'allDone';
     note.textContent = isPackingTab ? 'Everything here is packed.' : 'Everything here is bought.';
@@ -795,7 +867,14 @@ function escapeHtml(s){
 const modalOverlay = document.getElementById('modalOverlay');
 const fName = document.getElementById('fName');
 const fCategory = document.getElementById('fCategory');
+const fCustomCat = document.getElementById('fCustomCat');
 const fComment = document.getElementById('fComment');
+
+function syncCustomCat(){
+  const isCustom = fCategory.value === '__custom__';
+  fCustomCat.style.display = isCustom ? '' : 'none';
+  if(isCustom) setTimeout(()=>fCustomCat.focus(), 50);
+}
 const qtyVal = document.getElementById('qtyVal');
 const targetIndia = document.getElementById('targetIndia');
 const targetUsa = document.getElementById('targetUsa');
@@ -821,16 +900,25 @@ fName.addEventListener('input', ()=>{
   if(!editingId || fCategory.dataset.auto === '1'){
     fCategory.value = guessCategory(fName.value || '');
     fCategory.dataset.auto = '1';
+    syncCustomCat();
   }
 });
-fCategory.addEventListener('change', ()=>{ fCategory.dataset.auto = '0'; });
+fCategory.addEventListener('change', ()=>{ fCategory.dataset.auto = '0'; syncCustomCat(); });
 
 function openModal(item){
   editingId = item ? item.id : null;
   document.getElementById('modalTitle').textContent = item ? 'Edit Item' : 'Add Item';
   fName.value = item ? item.name : '';
-  fCategory.value = item ? item.category : 'Other';
+  // custom category if the item's category isn't one of the built-ins
+  if(item && !CATEGORIES.includes(item.category)){
+    fCategory.value = '__custom__';
+    fCustomCat.value = item.category;
+  } else {
+    fCategory.value = item ? item.category : 'Other';
+    fCustomCat.value = '';
+  }
   fCategory.dataset.auto = item ? '0' : '1';
+  syncCustomCat();
   fComment.value = item ? (item.comment||'') : '';
   modalQty = item ? (item.qty||1) : 1;
   qtyVal.textContent = modalQty;
@@ -878,7 +966,9 @@ modalHandleHit.addEventListener('click', ()=>{ if(!dragMoved) closeModal(); });
 document.getElementById('saveBtn').addEventListener('click', ()=>{
   const name = fName.value.trim();
   if(!name){ toast('Please enter an item name'); return; }
-  const category = fCategory.value;
+  const category = fCategory.value === '__custom__'
+    ? (fCustomCat.value.trim() || 'Other')
+    : fCategory.value;
   const comment = fComment.value.trim();
 
   if(editingId){
@@ -996,7 +1086,7 @@ document.getElementById('fileInput').addEventListener('change', (e)=>{
         const packed = packedVal === 'yes' || packedVal === 'true' || packedVal === '1';
         const origin = ['shopping_india','shopping_usa'].includes(originVal) ? originVal : (listVal !== 'packing' ? listVal : '');
         items.push({
-          id: uid(), name, category: CATEGORIES.includes(category) ? category : guessCategory(name),
+          id: uid(), name, category,
           qty, comment, list: listVal, shopped, packed, bag: bagVal, origin
         });
         added++;
